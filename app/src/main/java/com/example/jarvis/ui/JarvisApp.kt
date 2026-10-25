@@ -2,6 +2,7 @@ package com.example.jarvis.ui
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -26,12 +27,17 @@ private data class Tab(val route: String, val label: String, val icon: ImageVect
 
 private val tabs = listOf(
     Tab("home", "Home", Icons.Filled.Home),
+    Tab("chat", "Chat", Icons.Filled.Face),
     Tab("settings", "Settings", Icons.Filled.Settings)
 )
 
 @Composable
-fun JarvisApp(vm: SettingsViewModel = viewModel()) {
+fun JarvisApp(
+    vm: SettingsViewModel = viewModel(),
+    chatVm: ChatViewModel = viewModel()
+) {
     val settings by vm.settings.collectAsStateWithLifecycle()
+    val hasKey by vm.hasKey.collectAsStateWithLifecycle()
     val nav = rememberNavController()
     val entry by nav.currentBackStackEntryAsState()
     val route = entry?.destination?.route
@@ -58,7 +64,16 @@ fun JarvisApp(vm: SettingsViewModel = viewModel()) {
     ) { pad ->
         NavHost(nav, startDestination = "home", modifier = Modifier.padding(pad)) {
             composable("home") { HomeScreen(settings) }
-            composable("settings") { SettingsScreen(settings, onSave = vm::save) }
+            composable("chat") { ChatScreen(chatVm) }
+            composable("settings") {
+                SettingsScreen(
+                    current = settings,
+                    hasKey = hasKey,
+                    onSave = vm::save,
+                    onSaveKey = vm::saveKey,
+                    onDeleteKey = vm::deleteKey
+                )
+            }
         }
     }
 }

@@ -16,7 +16,8 @@ data class AssistantSettings(
     val greeting: String = "Hello, how can I help you?",
     val displayName: String = "JARVIS AI",
     val personality: String = "Friendly, concise and helpful",
-    val language: String = "en" // "en" or "bn"
+    val language: String = "en", // "en" or "bn"
+    val geminiModel: String = "gemini-3.8-flash"
 )
 
 class SettingsRepository(private val context: Context) {
@@ -27,6 +28,7 @@ class SettingsRepository(private val context: Context) {
         val displayName = stringPreferencesKey("display_name")
         val personality = stringPreferencesKey("personality")
         val language = stringPreferencesKey("language")
+        val model = stringPreferencesKey("gemini_model")
     }
 
     val settings: Flow<AssistantSettings> = context.dataStore.data.map { p: Preferences ->
@@ -37,7 +39,8 @@ class SettingsRepository(private val context: Context) {
             greeting = p[Keys.greeting] ?: d.greeting,
             displayName = p[Keys.displayName] ?: d.displayName,
             personality = p[Keys.personality] ?: d.personality,
-            language = p[Keys.language] ?: d.language
+            language = p[Keys.language] ?: d.language,
+            geminiModel = p[Keys.model] ?: d.geminiModel
         )
     }
 
@@ -49,6 +52,7 @@ class SettingsRepository(private val context: Context) {
             it[Keys.displayName] = s.displayName.trim().ifEmpty { "JARVIS AI" }
             it[Keys.personality] = s.personality.trim()
             it[Keys.language] = s.language
+            it[Keys.model] = s.geminiModel.trim().ifEmpty { AssistantSettings().geminiModel }
         }
     }
 }

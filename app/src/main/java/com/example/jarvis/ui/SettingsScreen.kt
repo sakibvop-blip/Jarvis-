@@ -6,10 +6,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,17 +20,23 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.jarvis.settings.AssistantSettings
 
 @Composable
 fun SettingsScreen(
     current: AssistantSettings,
+    hasKey: Boolean,
     onSave: (AssistantSettings) -> Unit,
+    onSaveKey: (String) -> Unit,
+    onDeleteKey: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var draft by remember(current) { mutableStateOf(current) }
     var saved by remember { mutableStateOf(false) }
+    var keyInput by remember { mutableStateOf("") }
 
     fun edit(block: (AssistantSettings) -> AssistantSettings) {
         draft = block(draft); saved = false
@@ -63,9 +71,45 @@ fun SettingsScreen(
             FilterChip(draft.language == "bn", { edit { it.copy(language = "bn") } }, label = { Text("বাংলা") })
         }
 
+        OutlinedTextField(draft.geminiModel, { v -> edit { it.copy(geminiModel = v) } },
+            label = { Text("Gemini model") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        Text(
+            "Default: gemini-3.8-flash. If a model stops working, enter a newer name from ai.google.dev.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
         Button(onClick = { onSave(draft); saved = true }, modifier = Modifier.fillMaxWidth()) {
-            Text("Save")
+            Text("Save settings")
         }
         if (saved) Text("Saved.", color = MaterialTheme.colorScheme.primary)
+
+        Text("Gemini API key", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        Text(
+            if (hasKey) "A key is saved (encrypted on this phone)." else "No key saved yet.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        OutlinedTextField(
+            value = keyInput,
+            onValueChange = { keyInput = it },
+            label = { Text("Paste API key") },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            modifier = Modifier.fillMaxWidth()
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = { onSaveKey(keyInput.trim()); keyInput = "" },
+                enabled = keyInput.isNotBlank()
+            ) { Text("Save key") }
+            OutlinedButton(onClick = onDeleteKey, enabled = hasKey) { Text("Delete key") }
+        }
+        Text(
+            "The key stays on this phone and is sent only to Google's Gemini API. " +
+                "Never share it or put it in GitHub.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
