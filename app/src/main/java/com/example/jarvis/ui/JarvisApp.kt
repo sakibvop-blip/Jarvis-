@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -28,6 +29,7 @@ private data class Tab(val route: String, val label: String, val icon: ImageVect
 private val tabs = listOf(
     Tab("home", "Home", Icons.Filled.Home),
     Tab("chat", "Chat", Icons.Filled.Face),
+    Tab("voice", "Voice", Icons.Filled.Notifications),
     Tab("settings", "Settings", Icons.Filled.Settings)
 )
 
@@ -65,6 +67,7 @@ fun JarvisApp(
         NavHost(nav, startDestination = "home", modifier = Modifier.padding(pad)) {
             composable("home") { HomeScreen(settings) }
             composable("chat") { ChatScreen(chatVm) }
+            composable("voice") { VoiceScreen(settings, chatVm.speech, onSave = vm::save) }
             composable("settings") {
                 SettingsScreen(
                     current = settings,

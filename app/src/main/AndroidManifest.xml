@@ -4,6 +4,15 @@
     <!-- Needed only to call the Gemini API. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Needed only while you tap the mic button (speech-to-text). -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Lets the app find the phone's speech recognizer and text-to-speech engine (Android 11+). -->
+    <queries>
+        <intent><action android:name="android.speech.RecognitionService" /></intent>
+        <intent><action android:name="android.intent.action.TTS_SERVICE" /></intent>
+    </queries>
+
     <application
         android:allowBackup="false"
         android:icon="@android:drawable/sym_def_app_icon"

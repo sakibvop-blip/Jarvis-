@@ -1,5 +1,9 @@
 package com.example.jarvis.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -32,14 +36,30 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 fun ChatScreen(vm: ChatViewModel, modifier: Modifier = Modifier) {
     val state by vm.state.collectAsStateWithLifecycle()
     var input by remember { mutableStateOf("") }
+    var showRationale by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
+    val context = LocalContext.current
+
+    val micPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) vm.toggleMic() else vm.micDenied()
+    }
+
+    fun onMicClick() {
+        val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+            PackageManager.PERMISSION_GRANTED
+        if (granted || state.listening) vm.toggleMic() else showRationale = true
+    }
 
     LaunchedEffect(state.messages.size, state.sending) {
         val count = state.messages.size + if (state.sending) 1 else 0
@@ -53,7 +73,7 @@ fun ChatScreen(vm: ChatViewModel, modifier: Modifier = Modifier) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text("Chat", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
-            IconButton(onClick = vm::clearChat, enabled = state.messages.isNotEmpty()) {
+            IconButton(onClick = vm::clearChat, enabled = state.messages.isNotEmpty() || state.listening) {
                 Icon(Icons.Filled.Delete, contentDescription = "Clear chat")
             }
         }
@@ -67,7 +87,7 @@ fun ChatScreen(vm: ChatViewModel, modifier: Modifier = Modifier) {
             if (state.messages.isEmpty()) {
                 item {
                     Text(
-                        "Say hello. Try: \"open YouTube and search lo-fi music\" or \"WiFi settings kholo\".",
+                        "Type or tap the mic. Try: \"open YouTube and search lo-fi music\" or \"WiFi settings kholo\".",
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -75,6 +95,19 @@ fun ChatScreen(vm: ChatViewModel, modifier: Modifier = Modifier) {
             items(state.messages) { Bubble(it) }
             if (state.sending) {
                 item { Text("Thinking...", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            }
+        }
+
+        if (state.listening) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+                Text(
+                    "\u25CF Microphone is ON. Listening... (tap \u23F9 to stop)",
+                    color = Color(0xFFFF5252),
+                    style = MaterialTheme.typography.labelLarge
+                )
+                if (state.partial.isNotEmpty()) {
+                    Text(state.partial, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
 
@@ -89,6 +122,15 @@ fun ChatScreen(vm: ChatViewModel, modifier: Modifier = Modifier) {
                 placeholder = { Text("Type a message") },
                 maxLines = 4
             )
+            IconButton(
+                onClick = { onMicClick() },
+                enabled = !state.sending,
+                modifier = Modifier.semantics {
+                    contentDescription = if (state.listening) "Stop listening" else "Start voice input"
+                }
+            ) {
+                Text(if (state.listening) "\u23F9" else "\uD83C\uDFA4", style = MaterialTheme.typography.titleLarge)
+            }
             IconButton(
                 onClick = { vm.send(input); input = "" },
                 enabled = input.isNotBlank() && !state.sending
@@ -105,6 +147,27 @@ fun ChatScreen(vm: ChatViewModel, modifier: Modifier = Modifier) {
             text = { Text(p.description) },
             confirmButton = { TextButton(onClick = vm::confirmPending) { Text("Yes") } },
             dismissButton = { TextButton(onClick = vm::dismissPending) { Text("Cancel") } }
+        )
+    }
+
+    if (showRationale) {
+        AlertDialog(
+            onDismissRequest = { showRationale = false },
+            title = { Text("Allow microphone?") },
+            text = {
+                Text(
+                    "The mic is used only after you tap the mic button, for one phrase. " +
+                        "While it is on, a red \"Microphone is ON\" line is shown. " +
+                        "Nothing is recorded or saved by this app."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showRationale = false
+                    micPermission.launch(Manifest.permission.RECORD_AUDIO)
+                }) { Text("Continue") }
+            },
+            dismissButton = { TextButton(onClick = { showRationale = false }) { Text("Not now") } }
         )
     }
 }

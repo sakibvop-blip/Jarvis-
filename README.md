@@ -1,15 +1,13 @@
-# JARVIS AI (Phase 3)
+# JARVIS AI (Phase 4)
 
-Working: navigation, dark theme, assistant settings, Gemini chat with conversation context,
-encrypted API key storage (Android Keystore), safe action router (open https link, YouTube search,
-open Settings pages, open dialer). Not yet built: voice, wake word, alarms/timers, memory, coding, image gen, 3D avatar.
+Working (needs on-phone testing): navigation, dark theme, assistant settings, Gemini chat with context,
+encrypted API key, safe action router, tap-to-talk voice input (bn-BD / en-US), spoken replies (Android TTS),
+voice picker, speed/pitch/volume, preview.
+Not yet built: wake word, alarms/timers, memory, coding assistant, image generation, 3D avatar.
 
-## How actions stay safe
-Gemini returns JSON -> ReplyParser -> ActionValidator (allowlist + strict checks) -> confirmation
-dialog for links and dialer -> ActionExecutor (Android intents). No shell commands, no silent calls.
+## Privacy
+Microphone is used only after you tap the mic button; a red "Microphone is ON" line is shown while listening.
+The app does not record or store audio. Speech-to-text is done by your phone's speech service (may use Google servers).
 
-## Update your repo from Termux
-See the phase instructions; then `git add . && git commit -m "phase 3" && git push` and download the APK from GitHub Actions.
-
-## Gemini model
-Default `gemini-3.8-flash` (editable in Settings). Check ai.google.dev/gemini-api/docs/changelog for newer names.
+## Build
+Push to GitHub; Actions -> "Build APK" -> download artifact.

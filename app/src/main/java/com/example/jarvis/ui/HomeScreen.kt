@@ -40,8 +40,8 @@ fun HomeScreen(s: AssistantSettings, modifier: Modifier = Modifier) {
         }
         Spacer(Modifier.height(24.dp))
         Text(
-            if (bn) "বর্তমান ধাপ: Phase 3 (Gemini চ্যাট ও নিরাপদ অ্যাকশন)। ভয়েস, মেমোরি, 3D পরের ধাপে আসবে।"
-            else "Current stage: Phase 3 (Gemini chat and safe actions). Voice, memory and 3D come later.",
+            if (bn) "বর্তমান ধাপ: Phase 4 (ভয়েস ইনপুট ও আউটপুট)। wake word, মেমোরি, 3D পরের ধাপে আসবে।"
+            else "Current stage: Phase 4 (voice input and output). Wake word, memory and 3D come later.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

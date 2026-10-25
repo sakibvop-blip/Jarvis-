@@ -74,7 +74,7 @@ fun SettingsScreen(
         OutlinedTextField(draft.geminiModel, { v -> edit { it.copy(geminiModel = v) } },
             label = { Text("Gemini model") }, singleLine = true, modifier = Modifier.fillMaxWidth())
         Text(
-            "Default: gemini-3.8-flash. If a model stops working, enter a newer name from ai.google.dev.",
+            "Default: gemini-3.6-flash. If a model stops working, enter a newer name from ai.google.dev.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

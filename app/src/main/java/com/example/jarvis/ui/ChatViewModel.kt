@@ -15,6 +15,8 @@ import com.example.jarvis.ai.SystemPrompt
 import com.example.jarvis.ai.Turn
 import com.example.jarvis.security.SecureStore
 import com.example.jarvis.settings.SettingsRepository
+import com.example.jarvis.voice.SpeechInput
+import com.example.jarvis.voice.SpeechOutput
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,7 +33,9 @@ data class PendingAction(val action: Action, val description: String)
 data class ChatUiState(
     val messages: List<ChatMessage> = emptyList(),
     val sending: Boolean = false,
-    val pending: PendingAction? = null
+    val pending: PendingAction? = null,
+    val listening: Boolean = false,
+    val partial: String = ""
 )
 
 class ChatViewModel(app: Application) : AndroidViewModel(app) {
@@ -41,8 +45,17 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
     private val executor = ActionExecutor(app)
     private val turns = mutableListOf<Turn>()
 
+    val speech = SpeechOutput(app)
+    private val input = SpeechInput(app)
+    private var voiceWarned = false
+
     private val _state = MutableStateFlow(ChatUiState())
     val state: StateFlow<ChatUiState> = _state.asStateFlow()
+
+    init {
+        viewModelScope.launch { input.listening.collect { l -> _state.update { it.copy(listening = l) } } }
+        viewModelScope.launch { input.partial.collect { p -> _state.update { it.copy(partial = p) } } }
+    }
 
     private fun add(m: ChatMessage) = _state.update { it.copy(messages = it.messages + m) }
 
@@ -51,6 +64,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
     fun send(text: String) {
         val t = text.trim()
         if (t.isEmpty() || _state.value.sending) return
+        speech.stop()
         add(ChatMessage(t, Kind.USER))
 
         val key = secure.getApiKey()
@@ -72,11 +86,46 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
                     turns.add(Turn("model", r.text))
                     val parsed = ReplyParser.parse(r.text)
                     add(ChatMessage(parsed.reply, Kind.ASSISTANT))
+                    if (settings.speakReplies) {
+                        val problem = speech.speak(parsed.reply, settings)
+                        if (problem != null && !voiceWarned) {
+                            voiceWarned = true
+                            add(ChatMessage("Voice reply unavailable: $problem", Kind.INFO))
+                        }
+                    }
                     handle(ActionValidator.validate(parsed.action))
                 }
             }
             _state.update { it.copy(sending = false) }
         }
+    }
+
+    /** Tap-to-talk. Call only after the microphone permission is granted. */
+    fun toggleMic() {
+        if (_state.value.listening) {
+            input.stop()
+            return
+        }
+        if (_state.value.sending) return
+        viewModelScope.launch {
+            val s = settingsRepo.settings.first()
+            speech.stop()
+            input.start(
+                languageTag = if (s.language == "bn") "bn-BD" else "en-US",
+                onHeard = { heard -> send(heard) },
+                onFailed = { msg -> add(ChatMessage(msg, Kind.ERROR)) }
+            )
+        }
+    }
+
+    fun micDenied() {
+        add(
+            ChatMessage(
+                "Microphone permission was denied, so voice input is off. You can still type. " +
+                    "To enable it: phone Settings > Apps > JARVIS AI > Permissions > Microphone.",
+                Kind.ERROR
+            )
+        )
     }
 
     private fun handle(decision: ActionDecision) {
@@ -112,7 +161,15 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun clearChat() {
+        speech.stop()
+        input.cancel()
         turns.clear()
         _state.update { ChatUiState() }
+    }
+
+    override fun onCleared() {
+        input.destroy()
+        speech.shutdown()
+        super.onCleared()
     }
 }
